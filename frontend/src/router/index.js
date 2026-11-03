@@ -3,6 +3,8 @@ import HomePage from "../views/HomePage.vue";
 import LoginPage from "../views/LoginPage.vue";
 import { getToken, getUser, isAuthenticated } from "../services/auth.js";
 import { setAuthToken } from "../services/api.js";
+import ProductPage from "../views/ProductPage.vue";
+import CustomerPage from "../views/CustomerPage.vue";
 
 const routes = [
   {
@@ -17,6 +19,16 @@ const routes = [
     path: "/login",
     name: "login",
     component: LoginPage,
+  },
+  {
+    path: "/products",
+    name: "products",
+    component: ProductPage,
+  },
+  {
+    path: "/customers",
+    name: "customers",
+    component: CustomerPage,
   },
 ];
 
