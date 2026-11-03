@@ -13,9 +13,38 @@ class OrderController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'status' => 'nullable|string|in:pending,processing,completed,cancelled',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'per_page' => 'nullable|integer|min:1|max:100',
+        ]);
+
+        $orders = Order::query()
+            ->when($validated['status'] ?? null, function ($query, $status) {
+                $query->where('status', $status);
+            })
+            ->when($validated['start_date'] ?? null, function ($query, $date) {
+                $query->whereDate('created_at', '>=', $date);
+            })
+            ->when($validated['end_date'] ?? null, function ($query, $date) {
+                $query->whereDate('created_at', '<=', $date);
+            })
+            ->latest()
+            ->paginate($validated['per_page'] ?? 10);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'OK',
+            'data' => $orders->items(),
+            'meta' => [
+                'page' => $orders->currentPage(),
+                'per_page' => $orders->perPage(),
+                'total' => $orders->total(),
+            ],
+        ]);
     }
 
     /**
@@ -55,14 +84,14 @@ class OrderController extends Controller
             $orderItems = [];
             $subtotal = 0;
 
-            foreach ($validated['items'] as $item) {
+            foreach ($validated['items'] as $index=>$item) {
                 $product = $products->get($item['product_id']);
                 $quantity = $item['quantity'];
 
                 if (!$product || $product->stock < $quantity) {
                     throw ValidationException::withMessages([
-                        'items' => [
-                            "Stok {$product?->name} tidak mencukupi."
+                        "items.{$index}.quantity" => [
+                            "Stok {$product?->name} tersisa {$product?->stock}, diminta {$quantity}"
                         ]
                     ]);
                 }
@@ -128,9 +157,24 @@ class OrderController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Order $order)
+    public function show($id)
     {
-        //
+        $order = Order::with('customer', 'items')
+            ->find($id);
+
+        if (!$order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order not found.',
+                'errors' => null,
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'OK',
+            'data' => $order,
+        ]);
     }
 
     /**
