@@ -79,6 +79,7 @@ class ProductSeeder extends Seeder
         foreach ($products as $product) {
             DB::table('products')->insert([
                 ...$product,
+                'product_code' => 'PRD-' . Str::upper(Str::random(6)),
                 'slug' => Str::slug($product['name']),
                 'status' => 'active',
                 'created_at' => now(),

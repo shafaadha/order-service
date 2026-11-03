@@ -14,21 +14,25 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-         $products = Product::query()
+        $products = Product::query()
             ->when($request->search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%");
                 });
             })
             ->latest()
-            ->paginate(10)
-            ->withQueryString();
+            ->paginate(10);
 
         return response()->json([
             'success' => true,
-            'message' => 'Products retrieved successfully',
-            'data' => $products,
-        ]);
+            'message' => 'OK',
+            'data' => $products->items(),
+            'meta' => [
+                'page' => $products->currentPage(),
+                'per_page' => $products->perPage(),
+                'total' => $products->total(),
+            ],
+        ], 200);
     }
 
     /**
