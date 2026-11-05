@@ -15,6 +15,8 @@ export const login = async (credentials) => {
 export const logout = () => {
   localStorage.removeItem("token");
   localStorage.removeItem("user");
+
+  setAuthToken(null);
 };
 
 export const getUser = () => {
@@ -25,4 +27,6 @@ export const getUser = () => {
 
 export const getToken = () => localStorage.getItem("token");
 
-export const isAuthenticated = () => !!getToken();
+export const isAuthenticated = () => {
+  return !!getToken();
+};

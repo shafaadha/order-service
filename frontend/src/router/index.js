@@ -5,30 +5,59 @@ import { getToken, getUser, isAuthenticated } from "../services/auth.js";
 import { setAuthToken } from "../services/api.js";
 import ProductPage from "../views/ProductPage.vue";
 import CustomerPage from "../views/CustomerPage.vue";
+import OrderPage from "../views/OrderPage.vue";
+import MainLayout from "../views/layout/MainLayout.vue";
+import BaseLayout from "../views/layout/BaseLayout.vue";
 
 const routes = [
   {
     path: "/",
-    name: "home",
-    component: HomePage,
+    component: MainLayout,
     meta: {
       requiresAuth: true,
     },
+    children: [
+      {
+        path: "",
+        name: "home",
+        component: HomePage,
+      },
+      {
+        path: "/products",
+        name: "products",
+        component: ProductPage,
+        meta: {
+          requiresAuth: true,
+        },
+      },
+      {
+        path: "/customers",
+        name: "customers",
+        component: CustomerPage,
+        meta: {
+          requiresAuth: true,
+        },
+      },
+      {
+        path: "/orders",
+        name: "orders",
+        component: OrderPage,
+        meta: {
+          requiresAuth: true,
+        },
+      },
+    ],
   },
   {
     path: "/login",
-    name: "login",
-    component: LoginPage,
-  },
-  {
-    path: "/products",
-    name: "products",
-    component: ProductPage,
-  },
-  {
-    path: "/customers",
-    name: "customers",
-    component: CustomerPage,
+    component: BaseLayout,
+    children: [
+      {
+        path: "",
+        name: "login",
+        component: LoginPage,
+      },
+    ],
   },
 ];
 
@@ -39,22 +68,18 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const token = getToken();
+  const authenticated = isAuthenticated();
 
-  if (token) {
-    setAuthToken(token);
-  } else {
-    setAuthToken(null);
-  }
+  setAuthToken(token);
 
-  if (to.meta.requiresAuth && !isAuthenticated()) {
+  if (to.meta.requiresAuth && !authenticated) {
     return { name: "login" };
   }
 
-  if (to.name === "login" && isAuthenticated()) {
+  if (to.name === "login" && authenticated) {
     return { name: "home" };
   }
 
   return true;
 });
-
 export default router;

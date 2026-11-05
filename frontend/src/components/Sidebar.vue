@@ -3,7 +3,7 @@ import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { getUser, logout, isAuthenticated } from "../services/auth.js";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
+import { faArrowRightFromBracket, faEllipsis } from "@fortawesome/free-solid-svg-icons";
 
 const router = useRouter();
 
@@ -43,9 +43,8 @@ function toggleMenu(event) {
 
 async function logOut() {
     openMenu.value = false;
-
     try {
-        await logout();
+        logout();
     } catch (error) {
         console.error("Logout gagal:", error);
     } finally {
@@ -114,9 +113,9 @@ function initials() {
                 </p>
             </div>
 
-            <button type="button" @click="toggleMenu($event)"
+            <button type="button" @click="logOut"
                 class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700">
-                <FontAwesomeIcon :icon="faEllipsis" />
+                <FontAwesomeIcon :icon="faArrowRightFromBracket" />
             </button>
         </div>
 
