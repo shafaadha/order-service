@@ -8,6 +8,7 @@ import CustomerPage from "../views/CustomerPage.vue";
 import OrderPage from "../views/OrderPage.vue";
 import MainLayout from "../views/layout/MainLayout.vue";
 import BaseLayout from "../views/layout/BaseLayout.vue";
+import CreateOrder from "../views/CreateOrder.vue";
 
 const routes = [
   {
@@ -42,6 +43,14 @@ const routes = [
         path: "/orders",
         name: "orders",
         component: OrderPage,
+        meta: {
+          requiresAuth: true,
+        },
+      },
+      {
+        path: "/orders/create",
+        name: "createOrder",
+        component: CreateOrder,
         meta: {
           requiresAuth: true,
         },
