@@ -1,7 +1,12 @@
 import { createRouter, createWebHistory } from "vue-router";
 import HomePage from "../views/HomePage.vue";
 import LoginPage from "../views/LoginPage.vue";
-import { getToken, getUser, isAuthenticated } from "../services/auth.js";
+import {
+  getToken,
+  getUser,
+  isAuthenticated,
+  validateToken,
+} from "../services/auth.js";
 import { setAuthToken } from "../services/api.js";
 import ProductPage from "../views/ProductPage.vue";
 import CustomerPage from "../views/CustomerPage.vue";
@@ -75,11 +80,8 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to) => {
-  const token = getToken();
-  const authenticated = isAuthenticated();
-
-  setAuthToken(token);
+router.beforeEach(async (to) => {
+  const authenticated = await validateToken();
 
   if (to.meta.requiresAuth && !authenticated) {
     return { name: "login" };

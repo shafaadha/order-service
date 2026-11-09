@@ -30,3 +30,25 @@ export const getToken = () => localStorage.getItem("token");
 export const isAuthenticated = () => {
   return !!getToken();
 };
+
+export async function validateToken() {
+  const token = getToken();
+
+  if (!token) {
+    return false;
+  }
+
+  setAuthToken(token);
+
+  try {
+    await api.get("/user");
+    return true;
+  } catch (error) {
+    if (error.response?.status === 401) {
+      removeToken();
+      setAuthToken(null);
+    }
+
+    return false;
+  }
+}
