@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreProductRequest;
+use App\Http\Requests\UpdateProductRequest;
 use App\Models\Product;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
 
 class ProductController extends Controller
@@ -46,18 +47,13 @@ class ProductController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreProductRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|gt:0',
-            'stock' => 'required|integer|min:0',
-        ]);
+        $data = $request->validated();
 
-        $validated['slug'] = Str::slug($validated['name']);
-
-        $product = Product::create($validated);
+        $data['slug'] = Str::slug($data['name']);
+        $data['product_code'] = "PRD". strtoupper(Str::random(5));
+        $product = Product::create($data);
 
         return response()->json([
             'success' => true,
@@ -85,18 +81,12 @@ class ProductController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id )
+    public function update(UpdateProductRequest $request, string $id )
     {
-         $product = Product::findOrFail($id);
+        $product = Product::findOrFail($id);
 
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|gt:0',
-            'stock' => 'required|integer|min:0',
-        ]);
 
-        $product->update($validated);
+        $product->update($request->validated());
 
         return response()->json([
             'success' => true,
