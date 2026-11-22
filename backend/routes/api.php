@@ -26,4 +26,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orders', [OrderController::class, 'index']);
     Route::get('/orders/{id}', [OrderController::class, 'show']);
 
+    Route::patch('/orders/{order}/cancel', [OrderController::class, 'cancel']);
+    Route::patch('/orders/{order}/pay', [OrderController::class, 'pay']);
+
+
 });
