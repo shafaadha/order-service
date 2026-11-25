@@ -1,20 +1,24 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from "vue";
 import Alert from "../components/common/Alert.vue";
-import { cancelOrder, getOrders, payOrder } from "../services/order.js";
+import { cancelOrder, detailOrder, getOrders, payOrder } from "../services/order.js";
 import router from "../router/index.js";
 import { formatCurrency } from "../utils/format.js";
 import { VueDatePicker } from "@vuepic/vue-datepicker";
 import "@vuepic/vue-datepicker/dist/main.css";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { faCancel, faInfo, faMoneyBill } from "@fortawesome/free-solid-svg-icons";
+import { faCancel, faEllipsis, faInfo, faMoneyBill, faPrint } from "@fortawesome/free-solid-svg-icons";
 import Confirmation from "../components/common/Confirmation.vue";
 import { useRoute, useRouter } from "vue-router";
+import Select from "../components/common/Select.vue"
+import Menu from "../components/common/Menu.vue";
 
 // STATE
 const route = useRoute();
 const orders = ref([]);
 const loading = ref(false);
+const selectedStatus = ref("")
+const openMenu = ref(false);
 
 const search = ref("");
 const showModal = ref(false);
@@ -46,19 +50,85 @@ const form = reactive({
     phone_number: "",
 });
 
+const statusOptions = [
+    { value: "", label: "All Status" },
+    { value: "pending", label: "Pending" },
+    { value: "cancelled", label: "Cancelled" },
+    { value: "paid", label: "Paid" },
+];
+
 const lastPage = computed(() =>
     Math.max(1, Math.ceil(pagination.value.total / pagination.value.per_page))
 );
+
+const activeMenuId = ref(null);
+
+const menuPosition = ref({
+    top: 0,
+    left: 0,
+});
+
+const toggleMenu = (event, orderId) => {
+    if (activeMenuId.value === orderId && openMenu.value) {
+        openMenu.value = false;
+        activeMenuId.value = null;
+        return;
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+
+    const menuWidth = 160;
+    const menuHeight = 120;
+    const gap = 10;
+
+    menuPosition.value = {
+        top: rect.bottom + menuHeight + gap > window.innerHeight
+            ? rect.top - menuHeight - gap
+            : rect.bottom + gap,
+
+        left: Math.max(
+            8,
+            Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8)
+        ),
+    };
+
+    activeMenuId.value = orderId;
+    openMenu.value = true;
+};
 
 const openCreate = () => {
     router.push("/orders/create")
 }
 
-const openDetailOrder = (orderId) => {
-    router.push({
-        path: `/orders/${orderId}`,
-    });
-}
+const getActionItems = (order) => [
+    ...(order.status === "PENDING"
+        ? [{
+            label: "Pay",
+            action: () => {
+                openMenu.value = false;
+                payOrders(order.id);
+            },
+        }]
+        : []),
+
+    ...(["PENDING", "PAID"].includes(order.status)
+        ? [{
+            label: "Cancel",
+            action: () => {
+                openMenu.value = false;
+                cancelOrders(order.id);
+            },
+        }]
+        : []),
+
+    {
+        label: "Detail",
+        action: () => {
+            openMenu.value = false;
+            router.push(`/orders/${order.id}`)
+        },
+    },
+];
 
 const formatDate = (date) => {
     if (!date) return null;
@@ -128,6 +198,7 @@ async function confirmCancelOrder() {
 async function loadOrders(page = 1) {
     loading.value = true;
     errorMessage.value = "";
+    orders.value = [];
 
     try {
         const response = await getOrders({
@@ -139,6 +210,7 @@ async function loadOrders(page = 1) {
             end_date: searchDate.value?.[1]
                 ? formatDate(searchDate.value[1])
                 : null,
+            status: selectedStatus.value
         });
 
         const result = response.data;
@@ -165,33 +237,9 @@ async function loadOrders(page = 1) {
 // SEARCH WITH DEBOUNCE
 let searchTimeout;
 
-watch(searchDate, () => {
+watch([selectedStatus, searchDate], () => {
     loadOrders(1);
 });
-
-// RESET FORM
-function resetForm() {
-    Object.assign(form, {
-        name: "",
-        email: "",
-        phone_number: "",
-    });
-
-    errors.value = {};
-}
-
-// OPEN MODAL
-function openCreateModal() {
-    resetForm();
-    errorMessage.value = "";
-    showModal.value = true;
-}
-
-// CLOSE MODAL
-function closeModal() {
-    showModal.value = false;
-    resetForm();
-}
 
 // PAGINATION
 function changePage(page) {
@@ -230,7 +278,7 @@ onMounted(() => {
                 </p>
             </div>
 
-            <button @click="openCreate"
+            <button @click="router.push({ name: 'order-create' })"
                 class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium md:">
                 + Add Order
             </button>
@@ -250,9 +298,11 @@ onMounted(() => {
         <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
 
             <!-- SEARCH -->
-            <div class="p-4 border-b border-gray-100">
+            <div class="flex flex-row p-4 border-b border-gray-100 gap-4">
                 <VueDatePicker v-model="searchDate" range :enable-time-picker="true" :format="'dd/MM/yyyy HH:mm'"
-                    placeholder="Select date range" auto-apply :clearable="true" class="w-[25%]" />
+                    placeholder="Select date range" auto-apply :clearable="true" class="w-[50%]" />
+                <Select class="w-30" v-model="selectedStatus" :options="statusOptions"></Select>
+
             </div>
 
             <!-- TABLE -->
@@ -273,13 +323,13 @@ onMounted(() => {
                     <tbody class="divide-y divide-gray-100">
 
                         <tr v-if="loading">
-                            <td colspan="5" class="text-center py-10 text-gray-400">
+                            <td colspan="12" class="text-center py-10 text-gray-400">
                                 Loading orders...
                             </td>
                         </tr>
 
                         <tr v-else-if="orders.length === 0">
-                            <td colspan="5" class="text-center py-10 text-gray-400">
+                            <td colspan="12" class="text-center py-10 text-gray-400">
                                 No orders found.
                             </td>
                         </tr>
@@ -310,22 +360,13 @@ onMounted(() => {
                                 {{ order.status }}
                             </td>
 
-                            <td class="px-5 py-4">
-                                <div class="flex flex-row gap-4 items-center justify-center">
-                                    <button v-if="order.status === 'PENDING'" class="hover:text-green-600"
-                                        @click="payOrders(order.id)">
-                                        <FontAwesomeIcon :icon="faMoneyBill" />
-                                    </button>
+                            <td class=" px-5 py-4">
+                                <button type="button" @click="toggleMenu($event, order.id)">
+                                    <FontAwesomeIcon :icon="faEllipsis" />
+                                </button>
 
-                                    <button v-if="order.status === 'PENDING' || order.status === 'PAID'"
-                                        class="hover:text-red-600" @click="cancelOrders(order.id)">
-                                        <FontAwesomeIcon :icon="faCancel" />
-                                    </button>
-
-                                    <button @click="openDetailOrder(order.id)" class="hover:text-blue-900">
-                                        <FontAwesomeIcon :icon="faInfo" />
-                                    </button>
-                                </div>
+                                <Menu v-if="openMenu && activeMenuId === order.id" :items="getActionItems(order)"
+                                    :position="menuPosition" />
                             </td>
                         </tr>
 
