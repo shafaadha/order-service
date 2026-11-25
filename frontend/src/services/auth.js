@@ -45,10 +45,9 @@ export async function validateToken() {
     return true;
   } catch (error) {
     if (error.response?.status === 401) {
-      removeToken();
-      setAuthToken(null);
+      logout();
+      return false;
     }
-
-    return false;
+    throw error;
   }
 }

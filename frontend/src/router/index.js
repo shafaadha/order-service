@@ -13,7 +13,8 @@ import CustomerPage from "../views/CustomerPage.vue";
 import OrderPage from "../views/OrderPage.vue";
 import MainLayout from "../views/layout/MainLayout.vue";
 import BaseLayout from "../views/layout/BaseLayout.vue";
-import CreateOrder from "../views/CreateOrder.vue";
+import OrderCreate from "../views/OrderCreate.vue";
+import OrderDetailPage from "../views/OrderDetailPage.vue";
 
 const routes = [
   {
@@ -24,12 +25,15 @@ const routes = [
     },
     children: [
       {
-        path: "",
-        name: "home",
+        path: "dashboard",
+        name: "dashboard",
         component: HomePage,
+        meta: {
+          requiresAuth: true,
+        },
       },
       {
-        path: "/products",
+        path: "products",
         name: "products",
         component: ProductPage,
         meta: {
@@ -37,7 +41,7 @@ const routes = [
         },
       },
       {
-        path: "/customers",
+        path: "customers",
         name: "customers",
         component: CustomerPage,
         meta: {
@@ -46,19 +50,35 @@ const routes = [
       },
       {
         path: "/orders",
-        name: "orders",
-        component: OrderPage,
         meta: {
           requiresAuth: true,
         },
-      },
-      {
-        path: "/orders/create",
-        name: "createOrder",
-        component: CreateOrder,
-        meta: {
-          requiresAuth: true,
-        },
+        children: [
+          {
+            path: "",
+            name: "orders",
+            component: OrderPage,
+            meta: {
+              breadcrumb: "Orders",
+            },
+          },
+          {
+            path: ":id",
+            name: "order-detail",
+            component: OrderDetailPage,
+            meta: {
+              breadcrumb: "Order Detail",
+            },
+          },
+          {
+            path: "create",
+            name: "order-create",
+            component: OrderCreate,
+            meta: {
+              breadcrumb: "Create Order",
+            },
+          },
+        ],
       },
     ],
   },
@@ -81,14 +101,18 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to) => {
-  const authenticated = await validateToken();
+  const token = getToken();
 
-  if (to.meta.requiresAuth && !authenticated) {
+  if (to.meta.requiresAuth && !token) {
     return { name: "login" };
   }
 
-  if (to.name === "login" && authenticated) {
-    return { name: "home" };
+  if (to.name === "login" && token) {
+    const authenticated = await validateToken();
+
+    if (authenticated) {
+      return { name: "dashboard" };
+    }
   }
 
   return true;
